@@ -13,7 +13,7 @@ Event-Pro-Mobile is a mobile application built with Expo Router and React Native
 - React Native
 - Expo
 - Expo Router
-- TypeScript
+- JavaScript
 
 ## Getting Started
 
