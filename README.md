@@ -1,50 +1,43 @@
-# Welcome to your Expo app 👋
+# Event-Pro-Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Event-Pro-Mobile is a mobile application built with Expo Router and React Native for discovering and managing events.
 
-## Get started
+## Features
+- Browse upcoming events
+- View event details
+- Register for events
+- Event notifications
+- User profile management
 
-1. Install dependencies
+## Tech Stack
+- React Native
+- Expo
+- Expo Router
+- TypeScript
 
-   ```bash
-   npm install
-   ```
+## Getting Started
 
-2. Start the app
+Install dependencies:
 
-   ```bash
-   npx expo start
-   ```
+npm install
 
-In the output, you'll find options to open the app in a
+Start the development server:
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+npx expo start
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+Run on Android:
 
-## Get a fresh project
+npm run android
 
-When you're ready, run:
+Run on Web:
 
-```bash
-npm run reset-project
-```
+npm run web
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+## Team Workflow
 
-## Learn more
+Developers should create feature branches from the `develop` branch.
 
-To learn more about developing your project with Expo, look at the following resources:
+Example:
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
-
-## Join the community
-
-Join our community of developers creating universal apps.
-
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+git checkout develop  
+git checkout -b feature/event-list
