@@ -248,11 +248,12 @@ const styles = StyleSheet.create({
   formContainer: {
     width: '100%',
     marginBottom: 40,
+    gap: 9,
   },
   signUpButton: {
-    marginTop: 24,
+    marginTop: 39,
     marginBottom: 20,
-    width: '70%',
+    width: '75%',
     alignSelf: 'center',
     backgroundColor: '#6F00FF',
   },
