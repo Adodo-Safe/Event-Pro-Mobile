@@ -11,6 +11,7 @@ import {
     ScrollView
 } from "react-native";
 import { useRouter } from "expo-router";
+import axios from "axios";
 
 export default function Login() {
     const router = useRouter();
@@ -41,23 +42,27 @@ export default function Login() {
         }
 
         try {
-            // BACKEND LOGIN
+            const { data } = await axios.post(
+                "https://eventpro-fxfv.onrender.com/api/auth/login",
+                { email, password },
+                { headers: { "Content-Type": "application/json" } }
+            );
+            console.log("login response: ", data);
 
-            //Testing login
-            if (email !== "safe@yahoo.com") {
-                setEmailError("Invalid email");
-            }
-
-            if (password !== "123456") {
-                setPasswordError("Incorrect password");
-            }
-
-            if (email === "safe@yahoo.com" && password === "123456") {
+            if (data.token) {
                 setSuccess(true);
-                router.push("/(tabs)/home");
+                router.push("../(tabs)/home");
+            } else {
+                setEmailError(
+                    data.message?.include("email") ? data.message : ""
+                );
+                setPasswordError(
+                    data.message?.include("password") ? data.message : ""
+                );
             }
         } catch (err) {
-            console.error(err);
+            setEmailError(err.response?.data?.message || "");
+            setPasswordError(err.response?.data?.message || "");
         }
     };
 
@@ -82,6 +87,17 @@ export default function Login() {
                 />
 
                 <Text style={styles.title}>Sign In</Text>
+                <Text style={{ fontSize: 17 }}>
+                    New user?{" "}
+                    <TouchableOpacity>
+                        <Text
+                            style={{ fontWeight: "bold", fontSize: 17 }}
+                            onPress={router.push("")}
+                        >
+                            Create an account
+                        </Text>
+                    </TouchableOpacity>
+                </Text>
 
                 {/* Email */}
                 <Text style={styles.label}>Email Address</Text>
@@ -138,8 +154,18 @@ export default function Login() {
 
                 {/* Login button */}
                 <TouchableOpacity style={styles.button} onPress={handleLogin}>
-                    <Text style={styles.buttonText}>Sign In</Text>
+                    <Text style={styles.buttonText}>Login</Text>
                 </TouchableOpacity>
+                <Text>
+                    By signing in with an account, you agree to SO's {""}
+                    <Text style={{ fontWeight: "bold" }}>
+                        Terms of service {""}
+                    </Text>
+                    and
+                    <Text style={{ fontWeight: "bold" }}>
+                        {""} Privacy Policy
+                    </Text>
+                </Text>
             </ScrollView>
         </KeyboardAvoidingView>
     );
@@ -192,8 +218,10 @@ const styles = StyleSheet.create({
         padding: 15,
         borderRadius: 10,
         marginTop: 10,
+        marginBottom: 30,
+        textAlign: ' center',
         borderColor: "#8c3a45",
-borderWidth: 2,
+        borderWidth: 2
     },
 
     buttonText: {
