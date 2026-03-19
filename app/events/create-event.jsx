@@ -17,6 +17,7 @@ import * as ImagePicker from 'expo-image-picker';
 import { useRouter } from 'expo-router';
 
 import Button, { ActionButton } from '../../components/button';
+import { createEvent } from '../../services/api';
 import {
 	EventCreationPickerField,
 	EventCreationPickerModal,
@@ -49,6 +50,38 @@ const CATEGORY_OPTIONS = [
 	'Festival',
 ];
 
+const INITIAL_FORM_DATA = {
+	firstName: '',
+	lastName: '',
+	email: '',
+	eventName: '',
+	eventDate: '',
+	eventTime: '',
+	eventLocation: '',
+	streetAddress: '',
+	city: '',
+	countryState: '',
+	eventRegion: '',
+	eventCategory: '',
+	eventBanner: '',
+	eventBannerUri: '',
+	otherDetails: '',
+};
+
+const getCreateEventErrorMessage = (error) => {
+	const message = error?.response?.data?.message;
+
+	if (Array.isArray(message) && message.length > 0) {
+		return String(message[0]);
+	}
+
+	if (typeof message === 'string' && message.trim()) {
+		return message;
+	}
+
+	return 'Unable to create event right now. Please try again.';
+};
+
 export default function CreateEvent() {
 	const router = useRouter();
 	const scrollViewRef = useRef(null);
@@ -56,6 +89,7 @@ export default function CreateEvent() {
 	const [focusedField, setFocusedField] = useState('');
 	const [keyboardHeight, setKeyboardHeight] = useState(0);
 	const [submitError, setSubmitError] = useState('');
+	const [isSubmitting, setIsSubmitting] = useState(false);
 	const [selectConfig, setSelectConfig] = useState(null);
 	const [pickerConfig, setPickerConfig] = useState(null);
 	const [fieldErrors, setFieldErrors] = useState({});
@@ -63,23 +97,7 @@ export default function CreateEvent() {
 		eventDate: new Date(),
 		eventTime: new Date(),
 	});
-	const [formData, setFormData] = useState({
-		firstName: '',
-		lastName: '',
-		email: '',
-		eventName: '',
-		eventDate: '',
-		eventTime: '',
-		eventLocation: '',
-		streetAddress: '',
-		city: '',
-		countryState: '',
-		eventRegion: '',
-		eventCategory: '',
-		eventBanner: '',
-		eventBannerUri: '',
-		otherDetails: '',
-	});
+	const [formData, setFormData] = useState(INITIAL_FORM_DATA);
 
 	useEffect(() => {
 		const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
@@ -177,6 +195,10 @@ export default function CreateEvent() {
 	};
 
 	const handleNext = () => {
+		if (isSubmitting) {
+			return;
+		}
+
 		if (!validateStep(currentStep)) {
 			return;
 		}
@@ -188,6 +210,10 @@ export default function CreateEvent() {
 	};
 
 	const handleBack = () => {
+		if (isSubmitting) {
+			return;
+		}
+
 		if (currentStep === 0) {
 			router.back();
 			return;
@@ -302,14 +328,62 @@ export default function CreateEvent() {
 		}
 	};
 
-	const handleSubmit = () => {
-		if (!validateStep(currentStep)) {
+	const buildEventPayload = () => {
+		const mergedDateTime = new Date(pickerValues.eventDate);
+		mergedDateTime.setHours(
+			pickerValues.eventTime.getHours(),
+			pickerValues.eventTime.getMinutes(),
+			0,
+			0
+		);
+
+		return {
+			firstName: formData.firstName.trim(),
+			lastName: formData.lastName.trim(),
+			email: formData.email.trim().toLowerCase(),
+			eventName: formData.eventName.trim(),
+			eventDate: formData.eventDate,
+			eventTime: formData.eventTime,
+			eventLocation: formData.eventLocation.trim(),
+			streetAddress: formData.streetAddress.trim(),
+			city: formData.city.trim(),
+			countryState: formData.countryState.trim(),
+			eventRegion: formData.eventRegion,
+			eventCategory: formData.eventCategory,
+			eventBanner: formData.eventBanner,
+			eventBannerUri: formData.eventBannerUri,
+			otherDetails: formData.otherDetails.trim(),
+			startDateTime: mergedDateTime.toISOString(),
+		};
+	};
+
+	const handleSubmit = async () => {
+		const allStepsValid = STEP_FIELDS.every((_, index) => validateStep(index));
+
+		if (!allStepsValid) {
 			setSubmitError('*Error: Please fill all columns*');
 			return;
 		}
 
 		setSubmitError('');
-		Alert.alert('Event created', 'Your event details have been captured successfully.');
+		setIsSubmitting(true);
+
+		try {
+			await createEvent(buildEventPayload());
+			Alert.alert('Event created', 'Your event has been created successfully.');
+			setFormData(INITIAL_FORM_DATA);
+			setFieldErrors({});
+			setCurrentStep(0);
+			setPickerValues({
+				eventDate: new Date(),
+				eventTime: new Date(),
+			});
+			scrollViewRef.current?.scrollTo({ y: 0, animated: true });
+		} catch (error) {
+			setSubmitError(getCreateEventErrorMessage(error));
+		} finally {
+			setIsSubmitting(false);
+		}
 	};
 
 	const renderStepContent = () => {
@@ -477,6 +551,7 @@ export default function CreateEvent() {
 				<ActionButton
 					title="Next"
 					onPress={handleNext}
+					disabled={isSubmitting}
 					size="medium"
 					style={[styles.primaryButton, styles.fullWidthButton]}
 					textStyle={styles.primaryButtonText}
@@ -490,6 +565,7 @@ export default function CreateEvent() {
 					<Button
 						title="Back"
 						onPress={handleBack}
+						disabled={isSubmitting}
 						variant="secondary"
 						size="medium"
 						style={styles.secondaryButton}
@@ -498,6 +574,7 @@ export default function CreateEvent() {
 					<ActionButton
 						title="Next"
 						onPress={handleNext}
+						disabled={isSubmitting}
 						size="medium"
 						style={styles.primaryButton}
 						textStyle={styles.primaryButtonText}
@@ -508,8 +585,9 @@ export default function CreateEvent() {
 
 		return (
 			<ActionButton
-				title="Create Event"
+				title={isSubmitting ? 'Creating...' : 'Create Event'}
 				onPress={handleSubmit}
+				disabled={isSubmitting}
 				size="medium"
 				style={[styles.primaryButton, styles.fullWidthButton]}
 				textStyle={styles.primaryButtonText}

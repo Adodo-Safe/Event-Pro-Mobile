@@ -24,5 +24,5 @@ export default function RootLayout() {
     return null;
   }
 
-  return <Stack initialRouteName="index" screenOptions={{ headerShown: false }} />;
+  return <Stack initialRouteName="splash" screenOptions={{ headerShown: false }} />;
 }

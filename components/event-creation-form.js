@@ -88,7 +88,7 @@ export function EventCreationPickerField({ label, placeholder, value, onPress, e
 				<Text style={[styles.selectText, !value ? styles.placeholderText : null]} numberOfLines={1}>
 					{value || placeholder}
 				</Text>
-				<Ionicons name={iconName} size={16} color="#1F2937" />
+				{iconName ? <Ionicons name={iconName} size={16} color="#1F2937" /> : null}
 			</Pressable>
 		</View>
 	);
