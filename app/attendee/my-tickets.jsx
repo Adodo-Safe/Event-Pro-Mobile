@@ -32,6 +32,40 @@ api.interceptors.request.use(async (config) => {
   return config;
 });
 
+const BottomNav = ({ active }) => {
+  const tabs = [
+    { name: 'Home', icon: 'home-outline', activeIcon: 'home', route: '/(tabs)/home' },
+    { name: 'My Tickets', icon: 'ticket-outline', activeIcon: 'ticket', route: '/attendee/my-tickets' },
+    { name: 'Profile', icon: 'person-outline', activeIcon: 'person', route: '/attendee/profile' },
+  ];
+
+  return (
+    <View style={navStyles.container}>
+      {tabs.map((tab) => {
+        const isActive = active === tab.name;
+        return (
+          <TouchableOpacity
+            key={tab.name}
+            style={navStyles.tab}
+            onPress={() => router.push(tab.route)}
+            activeOpacity={0.7}
+          >
+            <Ionicons
+              name={isActive ? tab.activeIcon : tab.icon}
+              size={22}
+              color={isActive ? PURPLE : GRAY}
+            />
+            <Text style={[navStyles.tabText, isActive && navStyles.tabTextActive]}>
+              {tab.name}
+            </Text>
+            {isActive && <View style={navStyles.activeDot} />}
+          </TouchableOpacity>
+        );
+      })}
+    </View>
+  );
+};
+
 export default function MyTickets() {
   const [tickets, setTickets] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -45,7 +79,6 @@ export default function MyTickets() {
       const storedName = await AsyncStorage.getItem('firstName');
       if (storedName) setFirstName(storedName);
 
-      // Get registered event IDs from AsyncStorage
       const registered = await AsyncStorage.getItem('registeredEvents');
       const registeredList = registered ? JSON.parse(registered) : [];
 
@@ -54,7 +87,6 @@ export default function MyTickets() {
         return;
       }
 
-      // Fetch each event individually
       const eventPromises = registeredList.map((id) =>
         api.get(`/events/${id}`).then((res) => res.data?.event || res.data).catch(() => null)
       );
@@ -143,6 +175,7 @@ export default function MyTickets() {
       <ScrollView
         style={styles.body}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 80 }}
         refreshControl={
           <RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={[PURPLE]} />
         }
@@ -217,14 +250,14 @@ export default function MyTickets() {
                   </View>
                 </View>
 
-                {/* Ticket Divider — perforated style */}
+                {/* Perforated Divider */}
                 <View style={styles.perforated}>
                   <View style={styles.perfCircleLeft} />
                   <View style={styles.perfLine} />
                   <View style={styles.perfCircleRight} />
                 </View>
 
-                {/* Ticket Bottom — QR Section */}
+                {/* QR Section */}
                 <View style={styles.ticketBottom}>
                   <View style={styles.qrPreview}>
                     <QRCode
@@ -253,9 +286,10 @@ export default function MyTickets() {
             ))}
           </View>
         )}
-
-        <View style={{ height: 32 }} />
       </ScrollView>
+
+      {/* Bottom Navigation */}
+      <BottomNav active="My Tickets" />
 
       {/* Full Screen QR Modal */}
       <Modal
@@ -266,7 +300,6 @@ export default function MyTickets() {
       >
         <View style={styles.qrModalOverlay}>
           <View style={styles.qrModalBox}>
-            {/* Close */}
             <TouchableOpacity
               style={styles.qrModalClose}
               onPress={() => setShowQRModal(false)}
@@ -305,6 +338,49 @@ export default function MyTickets() {
     </SafeAreaView>
   );
 }
+
+const navStyles = StyleSheet.create({
+  container: {
+    position: 'absolute',
+    bottom: 0,
+    left: 0,
+    right: 0,
+    backgroundColor: '#fff',
+    flexDirection: 'row',
+    borderTopWidth: 1,
+    borderTopColor: '#F3F4F6',
+    paddingBottom: 20,
+    paddingTop: 10,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: -2 },
+  },
+  tab: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    position: 'relative',
+  },
+  tabText: {
+    fontSize: 11,
+    color: GRAY,
+    fontWeight: '600',
+  },
+  tabTextActive: {
+    color: PURPLE,
+  },
+  activeDot: {
+    position: 'absolute',
+    bottom: -6,
+    width: 4,
+    height: 4,
+    borderRadius: 2,
+    backgroundColor: PURPLE,
+  },
+});
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F9FAFB' },
@@ -346,7 +422,6 @@ const styles = StyleSheet.create({
     color: GRAY,
   },
 
-  // Empty State
   emptyState: {
     alignItems: 'center',
     paddingVertical: 60,
@@ -386,13 +461,11 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 
-  // Tickets List
   ticketsList: {
     paddingHorizontal: 16,
     gap: 16,
   },
 
-  // Ticket Card
   ticketCard: {
     backgroundColor: '#fff',
     borderRadius: 16,
@@ -404,7 +477,6 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 4 },
   },
 
-  // Top Strip
   ticketStrip: {
     backgroundColor: DARK,
     flexDirection: 'row',
@@ -432,7 +504,6 @@ const styles = StyleSheet.create({
     borderRadius: 5,
   },
 
-  // Content
   ticketContent: {
     padding: 16,
   },
@@ -455,11 +526,9 @@ const styles = StyleSheet.create({
     flex: 1,
   },
 
-  // Perforated Divider
   perforated: {
     flexDirection: 'row',
     alignItems: 'center',
-    marginHorizontal: 0,
   },
   perfCircleLeft: {
     width: 20,
@@ -483,7 +552,6 @@ const styles = StyleSheet.create({
     marginRight: -10,
   },
 
-  // QR Section
   ticketBottom: {
     flexDirection: 'row',
     padding: 16,
@@ -521,7 +589,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
 
-  // QR Modal
   qrModalOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.7)',

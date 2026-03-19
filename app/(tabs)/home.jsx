@@ -11,9 +11,9 @@ import {
     ActivityIndicator,
     RefreshControl
 } from "react-native";
-import {SafeAreaView} from "react-native-safe-area-context"
+import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
+import { router, usePathname } from "expo-router";
 import axios from "axios";
 import { Ionicons } from "@expo/vector-icons";
 
@@ -29,6 +29,60 @@ api.interceptors.request.use(async config => {
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
+
+const BottomNav = ({ active }) => {
+    const tabs = [
+        {
+            name: "Home",
+            icon: "home-outline",
+            activeIcon: "home",
+            route: "/(tabs)/home"
+        },
+        {
+            name: "My Tickets",
+            icon: "ticket-outline",
+            activeIcon: "ticket",
+            route: "/attendee/my-tickets"
+        },
+        {
+            name: "Profile",
+            icon: "person-outline",
+            activeIcon: "person",
+            route: "/attendee/profile"
+        }
+    ];
+
+    return (
+        <View style={navStyles.container}>
+            {tabs.map(tab => {
+                const isActive = active === tab.name;
+                return (
+                    <TouchableOpacity
+                        key={tab.name}
+                        style={navStyles.tab}
+                        onPress={() => router.push(tab.route)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name={isActive ? tab.activeIcon : tab.icon}
+                            size={22}
+                            color={isActive ? PURPLE : GRAY}
+                        />
+                        <Text
+                            style={[
+                                navStyles.tabText,
+                                isActive && navStyles.tabTextActive
+                            ]}
+                        >
+                            {tab.name}
+                        </Text>
+                        {isActive && <View style={navStyles.activeDot} />}
+                    </TouchableOpacity>
+                );
+            })}
+        </View>
+    );
+};
 
 export default function AttendeeHome() {
     const [firstName, setFirstName] = useState("");
@@ -125,7 +179,6 @@ export default function AttendeeHome() {
             activeOpacity={0.85}
         >
             <View style={styles.cardStrip} />
-
             <View style={styles.cardContent}>
                 <View style={styles.cardTopRow}>
                     <Text style={styles.cardTitle} numberOfLines={1}>
@@ -221,6 +274,7 @@ export default function AttendeeHome() {
         <SafeAreaView style={styles.safe}>
             <StatusBar barStyle="light-content" backgroundColor="#1A1A2E" />
 
+            {/* Header */}
             <View style={styles.header}>
                 <TouchableOpacity>
                     <View style={styles.hamburger}>
@@ -266,6 +320,10 @@ export default function AttendeeHome() {
                         colors={[PURPLE]}
                     />
                 }
+                contentContainerStyle={[
+                    styles.listContent,
+                    { paddingBottom: 80 }
+                ]}
                 ListHeaderComponent={
                     <View style={styles.listHeader}>
                         <View style={styles.welcomeRow}>
@@ -365,11 +423,56 @@ export default function AttendeeHome() {
                         </Text>
                     </View>
                 }
-                contentContainerStyle={styles.listContent}
             />
+
+            {/* Bottom Navigation */}
+            <BottomNav active="Home" />
         </SafeAreaView>
     );
 }
+
+const navStyles = StyleSheet.create({
+    container: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: "#fff",
+        flexDirection: "row",
+        borderTopWidth: 1,
+        borderTopColor: "#F3F4F6",
+        paddingBottom: 20,
+        paddingTop: 10,
+        elevation: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: -2 }
+    },
+    tab: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        position: "relative"
+    },
+    tabText: {
+        fontSize: 11,
+        color: GRAY,
+        fontWeight: "600"
+    },
+    tabTextActive: {
+        color: PURPLE
+    },
+    activeDot: {
+        position: "absolute",
+        bottom: -6,
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: PURPLE
+    }
+});
 
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: "#F9FAFB" },
