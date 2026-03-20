@@ -296,11 +296,11 @@ export default function CreateEvent() {
         return;
       }
       const result = await ImagePicker.launchImageLibraryAsync({
-        mediaTypes: ImagePicker.MediaTypeOptions.Images,
-        allowsEditing: true,
-        aspect: [16, 9],
-        quality: 0.8,
-      });
+  mediaTypes: ['images'],
+  allowsEditing: true,
+  aspect: [16, 9],
+  quality: 0.8,
+});
       if (result.canceled) return;
       const asset = result.assets?.[0];
       if (!asset?.uri) return;
