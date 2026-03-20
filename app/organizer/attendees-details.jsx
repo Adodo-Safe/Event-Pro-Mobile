@@ -33,13 +33,14 @@ export default function AttendeeDetail() {
   const [attendee, setAttendee] = useState(null);
   const [loading, setLoading] = useState(true);
   const [checkingIn, setCheckingIn] = useState(false);
+  const [sendingSMS, setSendingSMS] = useState(false);
 
   useEffect(() => {
     const fetchAttendee = async () => {
       try {
         const res = await api.get(`/events/${eventId}/attendees`);
-        const list = res.data?.attendees || res.data || [];
-        const found = list.find(a => (a._id || a.id) === attendeeId);
+        const list = res.data?.attendees || [];
+        const found = list.find(a => a._id === attendeeId);
         setAttendee(found);
       } catch {
         Alert.alert('Error', 'Could not load attendee details.');
@@ -56,8 +57,8 @@ export default function AttendeeDetail() {
       await api.post(`/events/${eventId}/checkin/scan`, {
         code: attendee?.checkInCode || attendeeId,
       });
-      setAttendee(prev => ({ ...prev, status: 'Checked-In' }));
-      Alert.alert('Success', `${attendee?.firstName} has been checked in!`);
+      setAttendee(prev => ({ ...prev, status: 'checked_in' }));
+      Alert.alert('Success!', `${attendee?.firstName} has been checked in.`);
     } catch (error) {
       const msg = error.response?.data?.message || 'Check-in failed. Please try again.';
       Alert.alert('Error', msg);
@@ -67,13 +68,41 @@ export default function AttendeeDetail() {
   };
 
   const handleSendSMS = async () => {
+    setSendingSMS(true);
     try {
       await api.post(`/events/${eventId}/checkin/send`, {
         attendeeIds: [attendeeId],
       });
-      Alert.alert('Sent!', 'Check-in instructions have been sent via SMS.');
+      Alert.alert('Sent!', 'Check-in instructions sent via SMS.');
     } catch {
       Alert.alert('Error', 'Could not send SMS. Please try again.');
+    } finally {
+      setSendingSMS(false);
+    }
+  };
+
+  const formatDate = (dateStr) => {
+    if (!dateStr) return '—';
+    return new Date(dateStr).toLocaleDateString('en-US', {
+      month: 'long', day: 'numeric', year: 'numeric',
+    });
+  };
+
+  const generateTicketId = (id) => {
+    return `EVT-${(id || '').slice(-6).toUpperCase()}`;
+  };
+
+  const getStatusStyle = (status) => {
+    switch (status?.toLowerCase()) {
+      case 'checked_in':
+      case 'checked-in':
+        return { color: '#059669', label: 'Checked In', icon: 'checkmark-circle' };
+      case 'pending':
+        return { color: '#D97706', label: 'Pending', icon: 'time-outline' };
+      case 'cancelled':
+        return { color: '#EF4444', label: 'Cancelled', icon: 'close-circle-outline' };
+      default:
+        return { color: PURPLE, label: 'Registered', icon: 'ellipse-outline' };
     }
   };
 
@@ -84,7 +113,7 @@ export default function AttendeeDetail() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Attendee Details</Text>
+          <Text style={styles.headerTitle}>Attendees Ticket Details</Text>
           <View style={{ width: 32 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -101,7 +130,7 @@ export default function AttendeeDetail() {
           <TouchableOpacity onPress={() => router.back()}>
             <Ionicons name="arrow-back" size={22} color="#fff" />
           </TouchableOpacity>
-          <Text style={styles.headerTitle}>Attendee Details</Text>
+          <Text style={styles.headerTitle}>Attendees Ticket Details</Text>
           <View style={{ width: 32 }} />
         </View>
         <View style={styles.loadingContainer}>
@@ -114,7 +143,10 @@ export default function AttendeeDetail() {
     );
   }
 
-  const isCheckedIn = attendee.status === 'Checked-In';
+  const statusStyle = getStatusStyle(attendee.status);
+  const isCheckedIn = ['checked_in', 'checked-in'].includes(
+    attendee.status?.toLowerCase()
+  );
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -142,95 +174,128 @@ export default function AttendeeDetail() {
           </Text>
         </View>
 
-        {/* Attendee Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Attendee Information</Text>
+        {/* Attendee Information Card */}
+        <View style={styles.card}>
+          <Text style={styles.cardTitle}>Attendee Information</Text>
+          <View style={styles.cardDivider} />
+
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Name:</Text>
+            <Text style={styles.infoLabel}>Name</Text>
             <Text style={styles.infoValue}>
               {attendee.firstName} {attendee.lastName}
             </Text>
           </View>
-          <View style={styles.divider} />
+          <View style={styles.rowDivider} />
+
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Phone number:</Text>
+            <Text style={styles.infoLabel}>Phone number</Text>
             <Text style={styles.infoValue}>{attendee.phone || '—'}</Text>
           </View>
-          <View style={styles.divider} />
+          <View style={styles.rowDivider} />
+
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Email:</Text>
-            <Text style={styles.infoValue}>{attendee.email}</Text>
+            <Text style={styles.infoLabel}>Email</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>
+              {attendee.email}
+            </Text>
           </View>
         </View>
 
-        {/* Ticket Info */}
-        <View style={styles.section}>
-          <Text style={styles.sectionTitle}>Ticket Information</Text>
+        {/* Ticket Information Card */}
+        <View style={[styles.card, styles.cardSubtle]}>
+          <Text style={styles.cardTitle}>Ticket Information</Text>
+          <View style={styles.cardDivider} />
+
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Event:</Text>
-            <Text style={styles.infoValue}>{eventTitle}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Ticket Type:</Text>
-            <Text style={styles.infoValue}>{attendee.ticketType || 'Regular'}</Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Ticket ID:</Text>
-            <Text style={styles.infoValue}>
-              {attendee.ticketId || `EVT-${(attendeeId || '').slice(-6).toUpperCase()}`}
+            <Text style={styles.infoLabel}>Event</Text>
+            <Text style={styles.infoValue} numberOfLines={1}>
+              {eventTitle}
             </Text>
           </View>
-          <View style={styles.divider} />
+          <View style={styles.rowDivider} />
+
           <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Purchase Date:</Text>
-            <Text style={styles.infoValue}>
-              {attendee.createdAt
-                ? new Date(attendee.createdAt).toLocaleDateString('en-US', {
-                  month: 'long', day: 'numeric', year: 'numeric'
-                })
-                : '—'}
-            </Text>
-          </View>
-          <View style={styles.divider} />
-          <View style={styles.infoRow}>
-            <Text style={styles.infoLabel}>Status:</Text>
-            <View style={styles.statusRow}>
+            <Text style={styles.infoLabel}>Ticket Type</Text>
+            <View style={[
+              styles.ticketTypeBadge,
+              { backgroundColor: attendee.ticketType === 'VIP' ? PURPLE_LIGHT : '#FEF3C7' }
+            ]}>
               <Text style={[
-                styles.statusValue,
-                { color: isCheckedIn ? '#059669' : '#D97706' }
+                styles.ticketTypeText,
+                { color: attendee.ticketType === 'VIP' ? PURPLE : '#D97706' }
               ]}>
-                {attendee.status || 'Pending'}
+                {attendee.ticketType || 'Regular'}
               </Text>
-              {isCheckedIn && (
-                <Ionicons name="checkmark-circle" size={16} color="#059669" />
-              )}
+            </View>
+          </View>
+          <View style={styles.rowDivider} />
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Ticket ID</Text>
+            <Text style={[styles.infoValue, styles.ticketId]}>
+              {generateTicketId(attendee._id)}
+            </Text>
+          </View>
+          <View style={styles.rowDivider} />
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Purchase Date</Text>
+            <Text style={styles.infoValue}>
+              {formatDate(attendee.createdAt)}
+            </Text>
+          </View>
+          <View style={styles.rowDivider} />
+
+          <View style={styles.infoRow}>
+            <Text style={styles.infoLabel}>Status</Text>
+            <View style={styles.statusRow}>
+              <Ionicons
+                name={statusStyle.icon}
+                size={16}
+                color={statusStyle.color}
+              />
+              <Text style={[styles.statusValue, { color: statusStyle.color }]}>
+                {statusStyle.label}
+              </Text>
             </View>
           </View>
         </View>
 
         {/* Action Buttons */}
-        <View style={styles.actions}>
+        <View style={styles.actionBtns}>
           <TouchableOpacity
             style={styles.downloadBtn}
             onPress={handleSendSMS}
+            disabled={sendingSMS}
           >
-            <Ionicons name="download-outline" size={16} color={PURPLE} />
-            <Text style={styles.downloadBtnText}>Download Ticket</Text>
+            {sendingSMS ? (
+              <ActivityIndicator size="small" color={PURPLE} />
+            ) : (
+              <>
+                <Ionicons name="download-outline" size={16} color={PURPLE} />
+                <Text style={styles.downloadBtnText}>Download Ticket</Text>
+              </>
+            )}
           </TouchableOpacity>
 
           <TouchableOpacity
             style={styles.smsBtn}
             onPress={handleSendSMS}
+            disabled={sendingSMS}
           >
-            <Ionicons name="chatbubble-outline" size={16} color="#fff" />
-            <Text style={styles.smsBtnText}>Send SMS</Text>
+            {sendingSMS ? (
+              <ActivityIndicator size="small" color="#fff" />
+            ) : (
+              <>
+                <Ionicons name="chatbubble-outline" size={16} color="#fff" />
+                <Text style={styles.smsBtnText}>Send SMS</Text>
+              </>
+            )}
           </TouchableOpacity>
         </View>
 
         {/* Check In Button */}
-        {!isCheckedIn && (
+        {!isCheckedIn ? (
           <TouchableOpacity
             style={[styles.checkInBtn, checkingIn && styles.checkInBtnDisabled]}
             onPress={handleCheckIn}
@@ -245,9 +310,7 @@ export default function AttendeeDetail() {
               </>
             )}
           </TouchableOpacity>
-        )}
-
-        {isCheckedIn && (
+        ) : (
           <View style={styles.checkedInBanner}>
             <Ionicons name="checkmark-circle" size={20} color="#059669" />
             <Text style={styles.checkedInText}>Already Checked In</Text>
@@ -259,8 +322,11 @@ export default function AttendeeDetail() {
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#F9FAFB' },
-  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center', gap: 16 },
+  safe: { flex: 1, backgroundColor: '#F5F5F5' },
+  loadingContainer: {
+    flex: 1, justifyContent: 'center',
+    alignItems: 'center', gap: 16,
+  },
 
   header: {
     backgroundColor: '#1A1A2E',
@@ -270,51 +336,114 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 14,
   },
-  headerTitle: { color: '#fff', fontSize: 15, fontWeight: '700' },
+  headerTitle: {
+    color: '#fff',
+    fontSize: 15,
+    fontWeight: '700',
+  },
 
   body: { flex: 1 },
 
   eventBanner: {
-    backgroundColor: '#1A1A2E',
+    backgroundColor: '#fff',
     paddingHorizontal: 20,
-    paddingVertical: 16,
-    marginBottom: 16,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F3F4F6',
+    marginBottom: 12,
   },
-  eventBannerTitle: { color: '#fff', fontSize: 16, fontWeight: '700' },
-  eventBannerSub: { color: '#9CA3AF', fontSize: 12, marginTop: 4 },
+  eventBannerTitle: {
+    color: DARK,
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  eventBannerSub: {
+    color: GRAY,
+    fontSize: 12,
+    marginTop: 2,
+  },
 
-  section: {
+  // Cards
+  card: {
     backgroundColor: '#fff',
     marginHorizontal: 16,
-    borderRadius: 14,
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
-    elevation: 1,
+    elevation: 3,
     shadowColor: '#000',
+    shadowOpacity: 0.08,
+    shadowRadius: 8,
+    shadowOffset: { width: 2, height: 4 },
+  },
+  cardSubtle: {
+    elevation: 1,
     shadowOpacity: 0.04,
     shadowRadius: 4,
-    shadowOffset: { width: 0, height: 1 },
+    shadowOffset: { width: 1, height: 2 },
   },
-  sectionTitle: {
+  cardTitle: {
     fontSize: 14,
     fontWeight: '800',
     color: DARK,
+    marginBottom: 10,
+  },
+  cardDivider: {
+    height: 1,
+    backgroundColor: '#E5E7EB',
     marginBottom: 12,
   },
+
   infoRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
   },
-  infoLabel: { fontSize: 13, color: GRAY, flex: 1 },
-  infoValue: { fontSize: 13, fontWeight: '600', color: DARK, flex: 1.5, textAlign: 'right' },
-  divider: { height: 1, backgroundColor: '#F3F4F6' },
+  rowDivider: {
+    height: 1,
+    backgroundColor: '#F9FAFB',
+  },
+  infoLabel: {
+    fontSize: 13,
+    color: GRAY,
+    flex: 1,
+  },
+  infoValue: {
+    fontSize: 13,
+    fontWeight: '600',
+    color: DARK,
+    flex: 1.5,
+    textAlign: 'right',
+  },
 
-  statusRow: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  statusValue: { fontSize: 13, fontWeight: '700' },
+  ticketTypeBadge: {
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+  },
+  ticketTypeText: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
 
-  actions: {
+  ticketId: {
+    fontFamily: 'monospace',
+    color: PURPLE,
+  },
+
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusValue: {
+    fontSize: 13,
+    fontWeight: '700',
+  },
+
+  // Action Buttons
+  actionBtns: {
     flexDirection: 'row',
     gap: 12,
     marginHorizontal: 16,
@@ -329,10 +458,14 @@ const styles = StyleSheet.create({
     borderWidth: 1.5,
     borderColor: PURPLE,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 13,
     backgroundColor: '#fff',
   },
-  downloadBtnText: { color: PURPLE, fontWeight: '700', fontSize: 14 },
+  downloadBtnText: {
+    color: PURPLE,
+    fontWeight: '700',
+    fontSize: 13,
+  },
   smsBtn: {
     flex: 1,
     flexDirection: 'row',
@@ -341,10 +474,15 @@ const styles = StyleSheet.create({
     gap: 6,
     backgroundColor: PURPLE,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 13,
   },
-  smsBtnText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+  smsBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 13,
+  },
 
+  // Check In
   checkInBtn: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -356,7 +494,11 @@ const styles = StyleSheet.create({
     marginHorizontal: 16,
   },
   checkInBtnDisabled: { backgroundColor: '#C4B5FD' },
-  checkInBtnText: { color: '#fff', fontWeight: '700', fontSize: 16 },
+  checkInBtnText: {
+    color: '#fff',
+    fontWeight: '700',
+    fontSize: 16,
+  },
 
   checkedInBanner: {
     flexDirection: 'row',
@@ -368,7 +510,11 @@ const styles = StyleSheet.create({
     paddingVertical: 16,
     marginHorizontal: 16,
   },
-  checkedInText: { color: '#059669', fontWeight: '700', fontSize: 16 },
+  checkedInText: {
+    color: '#059669',
+    fontWeight: '700',
+    fontSize: 16,
+  },
 
   errorText: { fontSize: 15, color: GRAY, marginBottom: 12 },
   goBackBtn: {
