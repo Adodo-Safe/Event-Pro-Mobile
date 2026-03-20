@@ -8,19 +8,15 @@ import {
   StatusBar,
   ActivityIndicator,
   Alert,
-  Dimensions,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router, useLocalSearchParams } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 
-const { width } = Dimensions.get('window');
-
+const PURPLE = '#6F00FF';
+const PURPLE_LIGHT = '#F0E6FF';
 const DARK = '#0F0F14';
-const ACCENT = '#6D28D9';
-const ACCENT2 = '#4F46E5';
-const LIGHT = '#F5F4FF';
 const GRAY = '#6B7280';
-const BORDER = '#E4E4F0';
 
 export default function RoleSelectionScreen() {
   const { token, firstName } = useLocalSearchParams();
@@ -32,19 +28,25 @@ export default function RoleSelectionScreen() {
       Alert.alert('Select a role', 'Please choose how you want to use EventPro.');
       return;
     }
+
     setLoading(true);
     try {
+      // Get email saved during login/signup
+      const email = await AsyncStorage.getItem('email');
+
       await AsyncStorage.multiSet([
         ['token', token || ''],
         ['role', selected],
         ['firstName', firstName || ''],
+        ...(email ? [[`role_${email}`, selected]] : []),
       ]);
+
       if (selected === 'user') {
         router.replace('/(tabs)/home');
       } else {
         router.replace('/(tabs)/dashboard');
       }
-    } catch {
+    } catch (error) {
       Alert.alert('Error', 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);
@@ -56,38 +58,44 @@ export default function RoleSelectionScreen() {
       key: 'user',
       label: 'ATTENDEE',
       title: 'I want to\nattend events',
-      features: ['Browse & discover events', 'Register & get tickets', 'Scan QR for check-in', 'Save favourite events'],
+      features: [
+        'Browse & discover events',
+        'Register & get tickets',
+        'Scan QR for check-in',
+        'Save favourite events',
+      ],
     },
     {
       key: 'organizer',
       label: 'ORGANIZER',
       title: 'I want to\nhost events',
-      features: ['Create & publish events', 'Manage your attendees', 'Handle check-ins', 'Export reports & CSV'],
+      features: [
+        'Create & publish events',
+        'Manage your attendees',
+        'Handle check-ins',
+        'Export reports & CSV',
+      ],
     },
   ];
 
   return (
     <SafeAreaView style={styles.safe}>
-      <StatusBar barStyle="light-content" backgroundColor={DARK} />
+      <StatusBar barStyle="light-content" backgroundColor="#1A1A2E" />
 
-      {/* Top bar */}
-      <View style={styles.topBar}>
-        <View style={styles.logoMark} />
-        <Text style={styles.logoText}>EventPro</Text>
+      {/* Header */}
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>EventPro</Text>
       </View>
 
       <View style={styles.body}>
-
-        {/* Heading */}
-        <View style={styles.headingBlock}>
-          <Text style={styles.stepLabel}>STEP 2 OF 2</Text>
-          <Text style={styles.heading}>
-            {firstName ? `${firstName}, you're` : "You're"}{'\n'}almost in.
-          </Text>
-          <Text style={styles.subText}>
-            Choose your role. This shapes your entire experience.
-          </Text>
-        </View>
+        {/* Greeting */}
+        <Text style={styles.stepLabel}>STEP 2 OF 2</Text>
+        <Text style={styles.heading}>
+          {firstName ? `${firstName}, you're` : "You're"}{'\n'}almost in.
+        </Text>
+        <Text style={styles.subText}>
+          Choose your role. This shapes your entire experience.
+        </Text>
 
         {/* Cards */}
         <View style={styles.cards}>
@@ -100,11 +108,9 @@ export default function RoleSelectionScreen() {
                 onPress={() => setSelected(role.key)}
                 activeOpacity={0.9}
               >
-                {/* Top strip */}
                 <View style={[styles.cardStrip, isSelected && styles.cardStripActive]} />
 
                 <View style={styles.cardInner}>
-                  {/* Role label + selector */}
                   <View style={styles.cardTopRow}>
                     <Text style={[styles.roleLabel, isSelected && styles.roleLabelActive]}>
                       {role.label}
@@ -114,15 +120,12 @@ export default function RoleSelectionScreen() {
                     </View>
                   </View>
 
-                  {/* Title */}
                   <Text style={[styles.cardTitle, isSelected && styles.cardTitleActive]}>
                     {role.title}
                   </Text>
 
-                  {/* Divider */}
                   <View style={[styles.divider, isSelected && styles.dividerActive]} />
 
-                  {/* Features */}
                   <View style={styles.featureList}>
                     {role.features.map((f) => (
                       <View key={f} style={styles.featureRow}>
@@ -150,55 +153,46 @@ export default function RoleSelectionScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.btnText}>
-              {selected ? `Get started as ${selected === 'user' ? 'Attendee' : 'Organizer'}` : 'Select a role'}
+              {selected
+                ? `Continue as ${selected === 'user' ? 'Attendee' : 'Organizer'}`
+                : 'Select a role to continue'}
             </Text>
           )}
         </TouchableOpacity>
 
-        <Text style={styles.note}>This can be changed later in your profile.</Text>
+        <Text style={styles.footer}>
+          You can update this later in your profile settings.
+        </Text>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: { flex: 1, backgroundColor: '#FAFAFA' },
+  safe: { flex: 1, backgroundColor: '#F9FAFB' },
 
-  // Top bar
-  topBar: {
-    backgroundColor: DARK,
-    flexDirection: 'row',
+  header: {
+    backgroundColor: '#1A1A2E',
     alignItems: 'center',
-    paddingHorizontal: 20,
     paddingVertical: 14,
-    gap: 8,
   },
-  logoMark: {
-    width: 10,
-    height: 10,
-    borderRadius: 2,
-    backgroundColor: ACCENT,
-    transform: [{ rotate: '45deg' }],
-  },
-  logoText: {
+  headerTitle: {
     color: '#fff',
-    fontSize: 16,
+    fontSize: 18,
     fontWeight: '700',
-    letterSpacing: 1,
+    letterSpacing: 0.5,
   },
 
   body: {
     flex: 1,
     paddingHorizontal: 20,
-    paddingTop: 32,
+    paddingTop: 28,
   },
 
-  // Heading
-  headingBlock: { marginBottom: 28 },
   stepLabel: {
     fontSize: 11,
     fontWeight: '700',
-    color: ACCENT,
+    color: PURPLE,
     letterSpacing: 2,
     marginBottom: 10,
   },
@@ -213,20 +207,21 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: GRAY,
     lineHeight: 20,
+    marginBottom: 24,
   },
 
-  // Cards
   cards: {
     flexDirection: 'row',
     gap: 12,
     marginBottom: 28,
   },
+
   card: {
     flex: 1,
     backgroundColor: '#fff',
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: BORDER,
+    borderColor: '#E5E7EB',
     overflow: 'hidden',
     elevation: 2,
     shadowColor: '#000',
@@ -235,18 +230,18 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 2 },
   },
   cardActive: {
-    borderColor: ACCENT,
+    borderColor: PURPLE,
     elevation: 6,
     shadowOpacity: 0.12,
-    shadowColor: ACCENT,
+    shadowColor: PURPLE,
   },
 
   cardStrip: {
     height: 4,
-    backgroundColor: BORDER,
+    backgroundColor: '#E5E7EB',
   },
   cardStripActive: {
-    backgroundColor: ACCENT,
+    backgroundColor: PURPLE,
   },
 
   cardInner: { padding: 16 },
@@ -263,23 +258,23 @@ const styles = StyleSheet.create({
     letterSpacing: 1.5,
     color: GRAY,
   },
-  roleLabelActive: { color: ACCENT },
+  roleLabelActive: { color: PURPLE },
 
   radio: {
     width: 18,
     height: 18,
     borderRadius: 9,
     borderWidth: 2,
-    borderColor: BORDER,
+    borderColor: '#E5E7EB',
     justifyContent: 'center',
     alignItems: 'center',
   },
-  radioActive: { borderColor: ACCENT },
+  radioActive: { borderColor: PURPLE },
   radioDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: ACCENT,
+    backgroundColor: PURPLE,
   },
 
   cardTitle: {
@@ -293,12 +288,12 @@ const styles = StyleSheet.create({
 
   divider: {
     height: 1,
-    backgroundColor: BORDER,
+    backgroundColor: '#E5E7EB',
     marginBottom: 12,
   },
-  dividerActive: { backgroundColor: LIGHT },
+  dividerActive: { backgroundColor: PURPLE_LIGHT },
 
-  featureList: { gap: 8 },
+  featureList: { gap: 6 },
   featureRow: { flexDirection: 'row', alignItems: 'center', gap: 8 },
   featureLine: {
     width: 14,
@@ -306,18 +301,12 @@ const styles = StyleSheet.create({
     borderRadius: 1,
     backgroundColor: '#D1D5DB',
   },
-  featureLineActive: { backgroundColor: ACCENT },
-  featureText: {
-    fontSize: 12,
-    color: GRAY,
-    flex: 1,
-    lineHeight: 16,
-  },
-  featureTextActive: { color: '#374151' },
+  featureLineActive: { backgroundColor: PURPLE },
+  featureText: { fontSize: 12, color: GRAY, flex: 1, lineHeight: 16 },
+  featureTextActive: { color: '#374151', fontWeight: '500' },
 
-  // Button
   btn: {
-    backgroundColor: ACCENT,
+    backgroundColor: PURPLE,
     borderRadius: 12,
     paddingVertical: 16,
     alignItems: 'center',
@@ -331,7 +320,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  note: {
+  footer: {
     textAlign: 'center',
     fontSize: 12,
     color: '#9CA3AF',
