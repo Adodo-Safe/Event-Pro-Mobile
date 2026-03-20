@@ -4,29 +4,96 @@ import {
     Text,
     StyleSheet,
     TouchableOpacity,
-    SafeAreaView,
     StatusBar,
     ScrollView,
     ActivityIndicator,
     RefreshControl,
     Alert
 } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import {SafeAreaView} from "react-native-safe-area-context"
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { router } from "expo-router";
 import axios from "axios";
+import { Ionicons } from "@expo/vector-icons";
 
 const BASE_URL = "https://eventpro-fxfv.onrender.com/api";
 const PURPLE = "#6F00FF";
 const PURPLE_LIGHT = "#F0E6FF";
+const DARK = "#0F0F14";
+const GRAY = "#6B7280";
 
-// Axios instance
 const api = axios.create({ baseURL: BASE_URL });
 api.interceptors.request.use(async config => {
     const token = await AsyncStorage.getItem("token");
     if (token) config.headers.Authorization = `Bearer ${token}`;
     return config;
 });
+
+const OrganizerBottomNav = ({ active }) => {
+    const tabs = [
+        {
+            name: "Home",
+            icon: "home-outline",
+            activeIcon: "home",
+            route: "/(tabs)/dashboard"
+        },
+        {
+            name: "Events",
+            icon: "calendar-outline",
+            activeIcon: "calendar",
+            route: "/organizer/my-events"
+        },
+        {
+            name: "Reports",
+            icon: "bar-chart-outline",
+            activeIcon: "bar-chart",
+            route: "/organizer/reports"
+        },
+        {
+            name: "Check-in",
+            icon: "qr-code-outline",
+            activeIcon: "qr-code",
+            route: "/organizer/checkin"
+        },
+        {
+            name: "Account",
+            icon: "person-outline",
+            activeIcon: "person",
+            route: "/attendee/profile"
+        }
+    ];
+
+    return (
+        <View style={navStyles.container}>
+            {tabs.map(tab => {
+                const isActive = active === tab.name;
+                return (
+                    <TouchableOpacity
+                        key={tab.name}
+                        style={navStyles.tab}
+                        onPress={() => router.push(tab.route)}
+                        activeOpacity={0.7}
+                    >
+                        <Ionicons
+                            name={isActive ? tab.activeIcon : tab.icon}
+                            size={22}
+                            color={isActive ? PURPLE : "#9CA3AF"}
+                        />
+                        <Text
+                            style={[
+                                navStyles.tabText,
+                                isActive && navStyles.tabTextActive
+                            ]}
+                        >
+                            {tab.name}
+                        </Text>
+                        {isActive && <View style={navStyles.activeDot} />}
+                    </TouchableOpacity>
+                );
+            })}
+        </View>
+    );
+};
 
 export default function OrganizerDashboard() {
     const [firstName, setFirstName] = useState("");
@@ -48,7 +115,7 @@ export default function OrganizerDashboard() {
             setStats(statsRes.data);
             setEvents(eventsRes.data?.events || eventsRes.data || []);
         } catch (error) {
-            // silently fail, show empty state
+            // silently fail
         } finally {
             setLoading(false);
             setRefreshing(false);
@@ -98,11 +165,13 @@ export default function OrganizerDashboard() {
         return (
             <SafeAreaView style={styles.safe}>
                 <View style={styles.header}>
-                    <View style={styles.hamburger}>
-                        <View style={styles.bar} />
-                        <View style={[styles.bar, { width: 16 }]} />
-                        <View style={styles.bar} />
-                    </View>
+                    <TouchableOpacity>
+                        <View style={styles.hamburger}>
+                            <View style={styles.bar} />
+                            <View style={[styles.bar, { width: 16 }]} />
+                            <View style={styles.bar} />
+                        </View>
+                    </TouchableOpacity>
                     <Text style={styles.headerTitle}>EventPro</Text>
                     <View style={{ width: 32 }} />
                 </View>
@@ -116,7 +185,6 @@ export default function OrganizerDashboard() {
     const upcomingEvents = events.filter(
         e => e.status !== "ended" && new Date(e.date) >= new Date()
     );
-
     const hasEvents = events.length > 0;
 
     return (
@@ -133,12 +201,24 @@ export default function OrganizerDashboard() {
                     </View>
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>EventPro</Text>
-                <View style={{ width: 32 }} />
+                <View style={styles.headerIcons}>
+                    <TouchableOpacity style={styles.iconBtn}>
+                        <View style={styles.notifWrapper}>
+                            <Ionicons
+                                name="notifications-outline"
+                                size={20}
+                                color={PURPLE_LIGHT}
+                            />
+                            <View style={styles.notifDot} />
+                        </View>
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView
                 style={styles.body}
                 showsVerticalScrollIndicator={false}
+                contentContainerStyle={{ paddingBottom: 80 }}
                 refreshControl={
                     <RefreshControl
                         refreshing={refreshing}
@@ -154,25 +234,6 @@ export default function OrganizerDashboard() {
                         <Text style={styles.welcomeName}>
                             {firstName || "Organizer"}
                         </Text>
-                    </View>
-                    <View style={styles.iconRow}>
-                        <TouchableOpacity style={styles.iconBtn}>
-                            <Ionicons
-                                name="search-outline"
-                                size={20}
-                                color="#374151"
-                            />
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.iconBtn}>
-                            <View style={styles.notifWrapper}>
-                                <Ionicons
-                                    name="notifications-outline"
-                                    size={20}
-                                    color={PURPLE}
-                                />
-                                <View style={styles.notifDot} />
-                            </View>
-                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -212,14 +273,24 @@ export default function OrganizerDashboard() {
                         style={styles.primaryAction}
                         onPress={() => router.push("/organizer/create-event")}
                     >
+                        <Ionicons
+                            name="add-circle-outline"
+                            size={18}
+                            color="#fff"
+                        />
                         <Text style={styles.primaryActionText}>
-                            + Create Event
+                            Create Event
                         </Text>
                     </TouchableOpacity>
                     <TouchableOpacity
                         style={styles.secondaryAction}
                         onPress={() => router.push("/organizer/checkin")}
                     >
+                        <Ionicons
+                            name="qr-code-outline"
+                            size={18}
+                            color={PURPLE}
+                        />
                         <Text style={styles.secondaryActionText}>
                             Scan Check-in
                         </Text>
@@ -232,9 +303,9 @@ export default function OrganizerDashboard() {
                         {hasEvents ? "Upcoming Events" : "My Events"}
                     </Text>
                     {hasEvents && (
-                        <TouchableOpacity>
-                            onPress={() => Alert.alert("Coming soon")}
-                        
+                        <TouchableOpacity
+                            onPress={() => router.push("/organizer/my-events")}
+                        >
                             <Text style={styles.seeAll}>See all</Text>
                         </TouchableOpacity>
                     )}
@@ -244,7 +315,11 @@ export default function OrganizerDashboard() {
                 {!hasEvents ? (
                     <View style={styles.emptyState}>
                         <View style={styles.emptyIcon}>
-                            <Text style={styles.emptyIconText}>+</Text>
+                            <Ionicons
+                                name="calendar-outline"
+                                size={32}
+                                color={PURPLE}
+                            />
                         </View>
                         <Text style={styles.emptyTitle}>No events yet</Text>
                         <Text style={styles.emptySubtitle}>
@@ -254,7 +329,7 @@ export default function OrganizerDashboard() {
                         <TouchableOpacity
                             style={styles.emptyBtn}
                             onPress={() =>
-                                Alert.alert("coming soon")
+                                router.push("/organizer/create-event")
                             }
                         >
                             <Text style={styles.emptyBtnText}>
@@ -263,7 +338,6 @@ export default function OrganizerDashboard() {
                         </TouchableOpacity>
                     </View>
                 ) : (
-                    /* Events List */
                     (upcomingEvents.length > 0 ? upcomingEvents : events)
                         .slice(0, 5)
                         .map(event => (
@@ -271,20 +345,16 @@ export default function OrganizerDashboard() {
                                 key={event.id || event._id}
                                 style={styles.eventCard}
                                 onPress={() =>
-                                    router.push(
-                                        `/organizer/events/${event.id || event._id}`
-                                    )
+                                    router.push(`/organizer/my-events`)
                                 }
                                 activeOpacity={0.85}
                             >
-                                {/* Color strip */}
                                 <View
                                     style={[
                                         styles.eventStrip,
                                         { backgroundColor: PURPLE }
                                     ]}
                                 />
-
                                 <View style={styles.eventContent}>
                                     <View style={styles.eventTopRow}>
                                         <Text
@@ -319,31 +389,52 @@ export default function OrganizerDashboard() {
                                         </View>
                                     </View>
 
-                                    <Text style={styles.eventMeta}>
-                                        {formatDate(
-                                            event.date || event.startDate
-                                        )}{" "}
-                                        ·{" "}
-                                        {event.venue ||
-                                            event.location ||
-                                            "Venue TBD"}
-                                    </Text>
+                                    <View style={styles.eventMetaRow}>
+                                        <Ionicons
+                                            name="calendar-outline"
+                                            size={12}
+                                            color={GRAY}
+                                        />
+                                        <Text style={styles.eventMeta}>
+                                            {formatDate(
+                                                event.date || event.startDate
+                                            )}
+                                        </Text>
+                                    </View>
 
-                                    {/* Attendee progress */}
+                                    <View style={styles.eventMetaRow}>
+                                        <Ionicons
+                                            name="location-outline"
+                                            size={12}
+                                            color={GRAY}
+                                        />
+                                        <Text style={styles.eventMeta}>
+                                            {event.location ||
+                                                event.venue ||
+                                                "Venue TBD"}
+                                        </Text>
+                                    </View>
+
                                     <View style={styles.progressRow}>
+                                        <Ionicons
+                                            name="people-outline"
+                                            size={12}
+                                            color={PURPLE}
+                                        />
                                         <Text style={styles.progressLabel}>
                                             {event.attendeeCount ??
                                                 event.registeredCount ??
                                                 0}{" "}
                                             /{" "}
-                                            {event.expectedCount ??
+                                            {event.expectedAttendees ??
                                                 event.capacity ??
                                                 "—"}{" "}
                                             attendees
                                         </Text>
                                     </View>
 
-                                    {event.expectedCount || event.capacity ? (
+                                    {event.expectedAttendees ||
+                                    event.capacity ? (
                                         <View style={styles.progressBarBg}>
                                             <View
                                                 style={[
@@ -352,7 +443,7 @@ export default function OrganizerDashboard() {
                                                         width: `${Math.min(
                                                             ((event.attendeeCount ??
                                                                 0) /
-                                                                (event.expectedCount ??
+                                                                (event.expectedAttendees ??
                                                                     event.capacity ??
                                                                     1)) *
                                                                 100,
@@ -367,12 +458,56 @@ export default function OrganizerDashboard() {
                             </TouchableOpacity>
                         ))
                 )}
-
-                <View style={{ height: 32 }} />
             </ScrollView>
+
+            {/* Bottom Navigation */}
+            <OrganizerBottomNav active="Home" />
         </SafeAreaView>
     );
 }
+
+const navStyles = StyleSheet.create({
+    container: {
+        position: "absolute",
+        bottom: 0,
+        left: 0,
+        right: 0,
+        backgroundColor: "#fff",
+        flexDirection: "row",
+        borderTopWidth: 1,
+        borderTopColor: "#F3F4F6",
+        paddingBottom: 20,
+        paddingTop: 10,
+        elevation: 10,
+        shadowColor: "#000",
+        shadowOpacity: 0.08,
+        shadowRadius: 10,
+        shadowOffset: { width: 0, height: -2 }
+    },
+    tab: {
+        flex: 1,
+        alignItems: "center",
+        justifyContent: "center",
+        gap: 4,
+        position: "relative"
+    },
+    tabText: {
+        fontSize: 11,
+        color: "#9CA3AF",
+        fontWeight: "600"
+    },
+    tabTextActive: {
+        color: PURPLE
+    },
+    activeDot: {
+        position: "absolute",
+        bottom: -6,
+        width: 4,
+        height: 4,
+        borderRadius: 2,
+        backgroundColor: PURPLE
+    }
+});
 
 const styles = StyleSheet.create({
     safe: { flex: 1, backgroundColor: "#F9FAFB" },
@@ -382,7 +517,6 @@ const styles = StyleSheet.create({
         alignItems: "center"
     },
 
-    // Header
     header: {
         backgroundColor: "#1A1A2E",
         flexDirection: "row",
@@ -399,11 +533,23 @@ const styles = StyleSheet.create({
         fontWeight: "700",
         letterSpacing: 0.5
     },
+    headerIcons: { flexDirection: "row", gap: 4 },
+    iconBtn: { padding: 6 },
+    notifWrapper: { position: "relative" },
+    notifDot: {
+        position: "absolute",
+        top: 0,
+        right: 0,
+        width: 7,
+        height: 7,
+        borderRadius: 4,
+        backgroundColor: PURPLE,
+        borderWidth: 1.5,
+        borderColor: "#1A1A2E"
+    },
 
-    // Body
     body: { flex: 1, paddingHorizontal: 16 },
 
-    // Welcome
     welcomeRow: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -411,34 +557,18 @@ const styles = StyleSheet.create({
         marginTop: 20,
         marginBottom: 4
     },
-    greeting: { fontSize: 13, color: "#6B7280" },
+    greeting: { fontSize: 13, color: GRAY },
     welcomeName: {
         fontSize: 20,
         fontWeight: "800",
-        color: "#111827",
+        color: DARK,
         marginTop: 2
     },
-    iconRow: { flexDirection: "row", gap: 8 },
-    iconBtn: { padding: 6 },
-    iconText: { fontSize: 18, color: "purple" },
-    notifWrapper: { position: "relative" },
-    notifDot: {
-        position: "absolute",
-        top: 0,
-        right: 0,
-        width: 8,
-        height: 8,
-        borderRadius: 4,
-        backgroundColor: "purple",
-        borderWidth: 1.5,
-        borderColor: "#F9FAFB"
-    },
 
-    // Page title
     pageTitle: {
         fontSize: 24,
         fontWeight: "800",
-        color: "#111827",
+        color: DARK,
         marginTop: 8
     },
     pageSubtitle: {
@@ -448,7 +578,6 @@ const styles = StyleSheet.create({
         marginBottom: 16
     },
 
-    // Stats
     statsRow: {
         flexDirection: "row",
         backgroundColor: "#fff",
@@ -465,13 +594,12 @@ const styles = StyleSheet.create({
     statValue: {
         fontSize: 24,
         fontWeight: "800",
-        color: "#111827",
+        color: DARK,
         marginBottom: 4
     },
     statLabel: { fontSize: 11, color: "#9CA3AF", textAlign: "center" },
     statDivider: { width: 1, backgroundColor: "#F3F4F6", marginHorizontal: 8 },
 
-    // Quick Actions
     actionsRow: {
         flexDirection: "row",
         gap: 12,
@@ -482,7 +610,10 @@ const styles = StyleSheet.create({
         backgroundColor: PURPLE,
         borderRadius: 10,
         paddingVertical: 12,
-        alignItems: "center"
+        alignItems: "center",
+        flexDirection: "row",
+        justifyContent: "center",
+        gap: 6
     },
     primaryActionText: {
         color: "#fff",
@@ -496,7 +627,10 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         alignItems: "center",
         borderWidth: 1.5,
-        borderColor: PURPLE
+        borderColor: PURPLE,
+        flexDirection: "row",
+        justifyContent: "center",
+        gap: 6
     },
     secondaryActionText: {
         color: PURPLE,
@@ -504,7 +638,6 @@ const styles = StyleSheet.create({
         fontSize: 14
     },
 
-    // Section header
     sectionHeader: {
         flexDirection: "row",
         justifyContent: "space-between",
@@ -514,7 +647,7 @@ const styles = StyleSheet.create({
     sectionTitle: {
         fontSize: 16,
         fontWeight: "800",
-        color: "#111827"
+        color: DARK
     },
     seeAll: {
         fontSize: 13,
@@ -522,7 +655,6 @@ const styles = StyleSheet.create({
         fontWeight: "600"
     },
 
-    // Empty state
     emptyState: {
         backgroundColor: "#fff",
         borderRadius: 16,
@@ -541,16 +673,10 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 16
     },
-    emptyIconText: {
-        fontSize: 28,
-        color: PURPLE,
-        fontWeight: "300",
-        lineHeight: 32
-    },
     emptyTitle: {
         fontSize: 16,
         fontWeight: "800",
-        color: "#111827",
+        color: DARK,
         marginBottom: 6
     },
     emptySubtitle: {
@@ -572,7 +698,6 @@ const styles = StyleSheet.create({
         fontSize: 14
     },
 
-    // Event Cards
     eventCard: {
         backgroundColor: "#fff",
         borderRadius: 14,
@@ -591,12 +716,12 @@ const styles = StyleSheet.create({
         flexDirection: "row",
         justifyContent: "space-between",
         alignItems: "center",
-        marginBottom: 4
+        marginBottom: 6
     },
     eventTitle: {
         fontSize: 15,
         fontWeight: "700",
-        color: "#111827",
+        color: DARK,
         flex: 1,
         marginRight: 8
     },
@@ -606,17 +731,24 @@ const styles = StyleSheet.create({
         paddingVertical: 3
     },
     statusText: { fontSize: 11, fontWeight: "700" },
+    eventMetaRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        gap: 6,
+        marginBottom: 4
+    },
     eventMeta: {
         fontSize: 12,
-        color: "#6B7280",
-        marginBottom: 10
+        color: GRAY
     },
     progressRow: {
         flexDirection: "row",
-        justifyContent: "space-between",
+        alignItems: "center",
+        gap: 6,
+        marginTop: 8,
         marginBottom: 6
     },
-    progressLabel: { fontSize: 12, color: "#6B7280" },
+    progressLabel: { fontSize: 12, color: GRAY },
     progressBarBg: {
         height: 4,
         backgroundColor: "#F3F4F6",
